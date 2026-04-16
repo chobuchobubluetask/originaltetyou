@@ -3,78 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>統合デジタル手帳(Sync版)</title>
+    <title>統合デジタル手帳</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; padding-bottom: 80px; color: #333; }
-        header { background: #2c3e50; color: white; padding: 12px; position: sticky; top: 0; z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
-        .week-container { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; margin-bottom: 20px; border-top: 2px solid #bdc3c7; }
-        .week-title { width: 100%; font-weight: bold; padding: 5px 10px; background: #bdc3c7; color: #2c3e50; border-radius: 4px; font-size: 0.9rem; }
-        .page-card { flex: 1; min-width: 340px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
-        .page-left { border-left: 8px solid #27ae60; }
-        .page-right { border-left: 8px solid #2980b9; }
-        .diary-img { width: 100%; display: block; background: #eee; min-height: 150px; object-fit: contain; }
-        .schedule-box { padding: 10px; }
-        .event-item { font-size: 0.85rem; padding: 6px 0; border-bottom: 1px dashed #eee; display: flex; }
-        .time-tag { color: #2980b9; font-weight: bold; min-width: 85px; font-size: 0.8rem; }
-        .allday-tag { background: #e67e22; color: white; padding: 1px 4px; border-radius: 3px; font-size: 0.7rem; margin-right: 5px; }
-        .tab-bar { display: flex; overflow-x: auto; background: #fff; padding: 8px; border-bottom: 1px solid #ccc; position: sticky; top: 48px; z-index: 999; }
-        .tab { padding: 8px 16px; margin-right: 8px; border-radius: 20px; background: #ecf0f1; white-space: nowrap; cursor: pointer; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background: #f0f2f5; padding-bottom: 80px; }
+        header { background: #2c3e50; color: white; padding: 12px; position: sticky; top: 0; z-index: 1000; text-align: center; }
+        .tab-bar { display: flex; overflow-x: auto; background: #fff; padding: 8px; border-bottom: 1px solid #ccc; position: sticky; top: 45px; z-index: 999; }
+        .tab { padding: 8px 16px; margin-right: 8px; border-radius: 20px; background: #ecf0f1; white-space: nowrap; cursor: pointer; font-size: 0.85rem; }
         .tab.active { background: #2c3e50; color: white; }
+        .week-container { padding: 10px; }
+        .week-title { font-weight: bold; padding: 5px; background: #bdc3c7; border-radius: 4px; margin-bottom: 10px; }
+        .page-card { background: white; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 8px solid #ccc; overflow: hidden; }
+        .page-left { border-left-color: #27ae60; }
+        .page-right { border-left-color: #2980b9; }
+        .diary-img { width: 100%; display: block; background: #eee; }
+        .schedule-box { padding: 10px; font-size: 0.85rem; }
+        .event-item { padding: 4px 0; border-bottom: 1px dashed #eee; display: flex; }
+        .time-tag { color: #2980b9; font-weight: bold; min-width: 80px; }
         nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ccc; z-index: 1001; }
         nav div { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; }
         .hidden { display: none; }
-        .admin-section { background: white; margin: 10px; padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
-        .btn-blue { background: #3498db; color: white; border: none; padding: 10px; border-radius: 5px; width: 100%; margin-top: 10px; cursor: pointer; }
+        .admin-card { background: white; margin: 10px; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .btn { width: 100%; padding: 12px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-blue { background: #3498db; color: white; }
+        .btn-green { background: #27ae60; color: white; }
     </style>
 </head>
 <body>
 
-<header>
-    <span>統合デジタル手帳</span>
-    <small id="current-view-tag"></small>
-</header>
-
+<header id="view-title">統合デジタル手帳</header>
 <div id="tabs" class="tab-bar"></div>
 
-<div id="list-view">
-    <div id="main-content"></div>
-</div>
+<div id="list-view"><div id="main-content"></div></div>
 
 <div id="import-view" class="hidden">
-    <div class="admin-section">
-        <h3>1. Outlook CSV 取込</h3>
+    <div class="admin-card">
+        <h3>1. Outlook予定の読込</h3>
         <input type="file" id="csvFile" accept=".csv" onchange="processCSV()">
     </div>
-
-    <div class="admin-section" style="background: #e8f4fd;">
-        <h3>2. 他のデバイスと同期 (バックアップ)</h3>
-        <p style="font-size: 0.8rem;">PCで取り込んだ後に保存して、スマホで読み込んでください。</p>
-        <button class="btn-blue" onclick="exportAllData()">全データをファイルに保存</button>
-        <hr>
-        <p style="font-size: 0.8rem;">保存したファイルを読み込みます。</p>
+    <div class="admin-card" style="background:#e8f4fd;">
+        <h3>2. 他デバイスとの同期</h3>
+        <button class="btn btn-blue" onclick="exportAllData()">全データをファイルに保存</button>
+        <p style="font-size:0.7rem; margin-top:10px;">スマホ側で以下のボタンから読み込みます：</p>
         <input type="file" id="importFile" accept=".json" onchange="importAllData()">
     </div>
 </div>
 
 <div id="camera-view" class="hidden">
-    <video id="video" style="width:100%;" autoplay playsinline></video>
+    <div style="position:relative; background:#000;">
+        <video id="video" style="width:100%; max-height:70vh;" autoplay playsinline></video>
+        <div id="scan-frame" style="position:absolute; top:20%; left:10%; width:80%; height:60%; border:2px solid #27ae60; pointer-events:none;"></div>
+    </div>
+    <div style="padding:15px; text-align:center; background:#fff;">
+        <p style="font-size:0.8rem; color:#666;">枠内に8桁の日付QRコードを写してください</p>
+        <button onclick="captureQR()" class="btn btn-green">スキャンして保存</button>
+    </div>
     <canvas id="canvas" style="display:none;"></canvas>
-    <div style="padding:20px;"><button onclick="captureQR()" style="width:100%; padding:20px; background:#27ae60; color:white; border:none; border-radius:10px;">スキャン保存</button></div>
 </div>
 
 <nav>
     <div onclick="changeMode('list')">📖 見る</div>
     <div onclick="changeMode('camera')">📸 撮影</div>
-    <div onclick="changeMode('import')">📥 取込</div>
+    <div onclick="changeMode('import')">📥 設定</div>
 </nav>
 
 <script>
 let db;
-let outlookSchedule = {}; 
+let outlookSchedule = {};
 let currentMonth = "";
 
-const req = indexedDB.open("IntegratedHandBook", 6);
+const req = indexedDB.open("DiaryDB", 7);
 req.onupgradeneeded = e => {
     let d = e.target.result;
     if(!d.objectStoreNames.contains("pages")) d.createObjectStore("pages", { keyPath: "date" });
@@ -83,73 +81,87 @@ req.onupgradeneeded = e => {
 req.onsuccess = e => { db = e.target.result; loadAllData(); };
 
 function changeMode(m) {
-    document.querySelectorAll('body > div:not(.tab-bar):not(header):not(nav)').forEach(el => el.classList.add('hidden'));
-    document.getElementById(m + '-view').classList.remove('hidden');
+    document.getElementById('list-view').classList.toggle('hidden', m !== 'list');
+    document.getElementById('import-view').classList.toggle('hidden', m !== 'import');
+    document.getElementById('camera-view').classList.toggle('hidden', m !== 'camera');
     if(m === 'camera') startCam();
 }
 
 async function startCam() {
-    const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    document.getElementById('video').srcObject = s;
+    const v = document.getElementById('video');
+    try {
+        const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", focusMode: "continuous" } });
+        v.srcObject = s;
+    } catch(err) { alert("カメラが使えません: " + err); }
 }
 
-// データの書き出し（バックアップ）
-async function exportAllData() {
-    const data = { pages: [], schedule: [] };
-    const tx = db.transaction(["pages", "schedule"], "readonly");
-    
-    data.pages = await new Promise(r => tx.objectStore("pages").getAll().onsuccess = e => r(e.target.result));
-    data.schedule = await new Promise(r => tx.objectStore("schedule").getAll().onsuccess = e => r(e.target.result));
-    
-    const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `diary_backup_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-}
-
-// データの読み込み（復元）
-function importAllData() {
-    const f = document.getElementById('importFile').files[0];
-    const r = new FileReader();
-    r.onload = async e => {
-        const data = JSON.parse(e.target.result);
-        const tx = db.transaction(["pages", "schedule"], "readwrite");
-        data.pages.forEach(p => tx.objectStore("pages").put(p));
-        data.schedule.forEach(s => tx.objectStore("schedule").put(s));
-        tx.oncomplete = () => { alert("データの復元が完了しました"); location.reload(); };
-    };
-    r.readAsText(f);
-}
-
-// Outlook CSV処理（添付ファイル形式対応）
 function processCSV() {
     const f = document.getElementById('csvFile').files[0];
     const r = new FileReader();
     r.onload = e => {
-        const text = e.target.result;
-        const rows = text.split(/\r(?!\n)|\n|\r\n/);
+        const rows = e.target.result.split(/\r(?!\n)|\n|\r\n/);
         let allEvents = [];
-        rows.forEach((line, index) => {
-            if (index === 0 || line.trim() === "") return;
+        rows.forEach((line, idx) => {
+            if(idx === 0 || !line.trim()) return;
             const c = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-            if (!c || c.length < 6) return;
-            const clean = c.map(v => v.replace(/^"|"$/g, '').trim());
-            const dParts = clean[1].split('/');
-            if (dParts.length === 3) {
-                const dateKey = dParts[0] + dParts[1].padStart(2, '0') + dParts[2].padStart(2, '0');
-                allEvents.push({ date: dateKey, start: clean[2], title: clean[0], allDay: clean[5] });
+            if(c && c.length >= 6) {
+                const clean = c.map(v => v.replace(/^"|"$/g, '').trim());
+                const d = clean[1].split('/');
+                if(d.length === 3) {
+                    const key = d[0] + d[1].padStart(2,'0') + d[2].padStart(2,'0');
+                    allEvents.push({ date: key, start: clean[2], title: clean[0], allDay: clean[5] });
+                }
             }
         });
-        allEvents.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
-        const grouped = {};
-        allEvents.forEach(ev => { if(!grouped[ev.date]) grouped[ev.date] = []; grouped[ev.date].push(ev); });
         const tx = db.transaction(["schedule"], "readwrite");
-        Object.keys(grouped).forEach(k => tx.objectStore("schedule").put({ date: k, events: grouped[k] }));
-        tx.oncomplete = () => { alert("取込完了"); loadAllData(); changeMode('list'); };
+        const store = tx.objectStore("schedule");
+        const grouped = {};
+        allEvents.forEach(ev => { if(!grouped[ev.date]) grouped[ev.date]=[]; grouped[ev.date].push(ev); });
+        Object.keys(grouped).forEach(k => store.put({ date: k, events: grouped[k] }));
+        tx.oncomplete = () => { alert(allEvents.length + "件取込完了"); loadAllData(); changeMode('list'); };
     };
     r.readAsText(f, "Shift-JIS");
+}
+
+function captureQR() {
+    const v = document.getElementById('video');
+    const c = document.getElementById('canvas');
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    ctx.drawImage(v, 0, 0);
+    const imgData = ctx.getImageData(0, 0, c.width, c.height);
+    const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
+    
+    if (code && code.data.length === 8) {
+        db.transaction(["pages"], "readwrite").objectStore("pages").put({ date: code.data, image: c.toDataURL("image/jpeg", 0.7) })
+          .oncomplete = () => { alert("保存: " + code.data); loadAllData(); changeMode('list'); };
+    } else {
+        alert("QRコードが認識できません。もう少し離すか、明るい場所で試してください。");
+    }
+}
+
+async function exportAllData() {
+    const tx = db.transaction(["pages", "schedule"], "readonly");
+    const pages = await new Promise(r => tx.objectStore("pages").getAll().onsuccess = e => r(e.target.result));
+    const schedule = await new Promise(r => tx.objectStore("schedule").getAll().onsuccess = e => r(e.target.result));
+    const blob = new Blob([JSON.stringify({ pages, schedule })], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `diary_backup.json`;
+    a.click();
+}
+
+function importAllData() {
+    const f = document.getElementById('importFile').files[0];
+    const r = new FileReader();
+    r.onload = e => {
+        const d = JSON.parse(e.target.result);
+        const tx = db.transaction(["pages", "schedule"], "readwrite");
+        d.pages.forEach(p => tx.objectStore("pages").put(p));
+        d.schedule.forEach(s => tx.objectStore("schedule").put(s));
+        tx.oncomplete = () => { alert("復元完了"); location.reload(); };
+    };
+    r.readAsText(f);
 }
 
 function loadAllData() {
@@ -163,22 +175,21 @@ function loadAllData() {
 function renderTabs() {
     db.transaction(["pages"], "readonly").objectStore("pages").getAllKeys().onsuccess = e => {
         const dates = e.target.result;
-        // 画像がある日と予定がある日を統合して月リストを作る
         const allDates = [...new Set([...dates, ...Object.keys(outlookSchedule)])];
         const months = [...new Set(allDates.map(d => d.substring(0,6)))].sort().reverse();
         if(!currentMonth && months.length > 0) currentMonth = months[0];
         document.getElementById('tabs').innerHTML = months.map(m => `<span class="tab ${m===currentMonth?'active':''}" onclick="currentMonth='${m}';renderTabs();">${m.substring(0,4)}/${m.substring(4,6)}</span>`).join('');
-        renderWeeklyList(dates);
+        renderList(dates);
     };
 }
 
-function renderWeeklyList(imageDates) {
-    const content = document.getElementById('main-content');
-    content.innerHTML = "";
+function renderList(imgDates) {
+    const container = document.getElementById('main-content');
+    container.innerHTML = "";
     let weeks = {};
-    const allPossibleDates = [...new Set([...imageDates, ...Object.keys(outlookSchedule)])].filter(d => d.startsWith(currentMonth)).sort();
-    
-    allPossibleDates.forEach(d => {
+    const targetDates = [...new Set([...imgDates, ...Object.keys(outlookSchedule)])].filter(d => d.startsWith(currentMonth)).sort();
+
+    targetDates.forEach(d => {
         const mon = getMonday(d);
         if(!weeks[mon]) weeks[mon] = { left: null, right: null };
         const dObj = new Date(d.substring(0,4), parseInt(d.substring(4,6))-1, parseInt(d.substring(6,8)));
@@ -186,33 +197,27 @@ function renderWeeklyList(imageDates) {
     });
 
     Object.keys(weeks).sort().reverse().forEach(mon => {
-        const weekDiv = document.createElement('div');
-        weekDiv.className = "week-container";
-        weekDiv.innerHTML = `<div class="week-title">${mon.substring(4,6)}/${mon.substring(6,8)}の週</div>`;
+        const wDiv = document.createElement('div');
+        wDiv.className = "week-container";
+        wDiv.innerHTML = `<div class="week-title">${mon.substring(4,6)}/${mon.substring(6,8)}の週</div>`;
         [weeks[mon].left, weeks[mon].right].forEach((d, idx) => {
-            if(!d && !weeks[mon][idx===0?'left':'right']) return;
             const dateVal = d || (idx===0 ? addDays(mon, 0) : addDays(mon, 3));
             const card = document.createElement('div');
             card.className = `page-card ${idx===0?'page-left':'page-right'}`;
-            
-            let schHtml = `<div class="schedule-box">`;
-            const period = idx === 0 ? [0,1,2] : [3,4,5,6];
-            period.forEach(offset => {
-                const targetD = addDays(mon, offset);
+            let sch = `<div class="schedule-box">`;
+            [0,1,2,3,4,5,6].filter(off => (idx===0 ? off<3 : off>=3)).forEach(off => {
+                const targetD = addDays(mon, off);
                 if(outlookSchedule[targetD]) outlookSchedule[targetD].forEach(ev => {
-                    const isAll = (ev.allDay.includes("はい") || ev.allDay.includes("True")) ? '<span class="allday-tag">終日</span>' : '';
-                    schHtml += `<div class="event-item"><span class="time-tag">${targetD.substring(6,8)}日 ${ev.start.substring(0,5)}</span>${isAll}${ev.title}</div>`;
+                    sch += `<div class="event-item"><span class="time-tag">${targetD.substring(6,8)}日 ${ev.start.substring(0,5)}</span>${ev.title}</div>`;
                 });
             });
-            schHtml += `</div>`;
-
             db.transaction(["pages"],"readonly").objectStore("pages").get(dateVal).onsuccess = e => {
-                const imgTag = e.target.result ? `<img src="${e.target.result.image}" class="diary-img">` : `<div style="padding:20px;text-align:center;color:#ccc;">画像なし</div>`;
-                card.innerHTML = `<div style="padding:5px;font-size:0.7rem;background:#eee;">${dateVal}</div>${imgTag}${schHtml}`;
+                const img = e.target.result ? `<img src="${e.target.result.image}" class="diary-img">` : `<div style="padding:40px; text-align:center; color:#ccc;">(手書き画像なし)</div>`;
+                card.innerHTML = `<div style="padding:5px; background:#f8f9fa; font-size:0.7rem;">${dateVal}</div>${img}${sch}</div>`;
             };
-            weekDiv.appendChild(card);
+            wDiv.appendChild(card);
         });
-        content.appendChild(weekDiv);
+        container.appendChild(wDiv);
     });
 }
 
@@ -226,17 +231,6 @@ function addDays(dStr, n) {
     const d = new Date(dStr.substring(0,4), parseInt(dStr.substring(4,6))-1, parseInt(dStr.substring(6,8)));
     d.setDate(d.getDate() + n);
     return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
-}
-async function captureQR() {
-    const v = document.getElementById('video');
-    const c = document.getElementById('canvas');
-    const ctx = c.getContext('2d');
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    ctx.drawImage(v, 0, 0);
-    const code = jsQR(ctx.getImageData(0,0,c.width,c.height).data, c.width, c.height);
-    if(code) {
-        db.transaction(["pages"],"readwrite").objectStore("pages").put({ date: code.data, image: c.toDataURL("image/jpeg", 0.7) }).oncomplete = () => { alert("保存完了"); loadAllData(); changeMode('list'); };
-    } else { alert("QRを認識できません"); }
 }
 </script>
 </body>
