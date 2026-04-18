@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>統合デジタル手帳 Today Focus</title>
+    <title>統合デジタル手帳 Outlook Priority</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #27ae60; --danger: #e74c3c; --today-border: #3498db; }
@@ -11,11 +11,10 @@
         header { background: var(--primary); color: white; padding: 12px; text-align: center; font-weight: bold; }
         
         .tab-bar { display: flex; overflow-x: auto; background: #fff; padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
-        .tab { padding: 8px 16px; margin-right: 8px; border-radius: 20px; background: #eee; white-space: nowrap; font-size: 0.85rem; }
+        .tab { padding: 8px 16px; margin-right: 8px; border-radius: 20px; background: #eee; white-space: nowrap; font-size: 0.85rem; cursor: pointer; }
         .tab.active { background: var(--primary); color: white; }
         
         .page-card { background: white; margin: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; border: 2px solid transparent; transition: 0.3s; }
-        /* 今日が含まれるカードの強調表示 */
         .page-card.is-today { border: 2px solid var(--today-border); box-shadow: 0 4px 20px rgba(52, 152, 219, 0.3); }
         .today-badge { background: var(--today-border); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-left: 5px; }
 
@@ -28,13 +27,12 @@
         
         .schedule-box { padding: 8px 12px; border-top: 1px solid #eee; background: #fff; }
         .day-group { margin-bottom: 10px; border-radius: 6px; padding: 4px; }
-        .day-group.is-today-row { background: #ebf5fb; } /* 今日の行だけ薄く色付け */
+        .day-group.is-today-row { background: #ebf5fb; }
         
         .day-header { font-size: 0.8rem; font-weight: bold; color: #7f8c8d; border-bottom: 1px solid #f0f0f0; margin-bottom: 4px; padding-top: 4px;}
         .event-item { font-size: 0.85rem; padding: 6px 0; border-bottom: 1px dashed #f0f0f0; display: flex; align-items: flex-start; }
         .time-tag { color: #2980b9; font-weight: bold; min-width: 90px; font-size: 0.7rem; flex-shrink: 0; }
 
-        /* カメラ・ナビUI */
         #camera-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 2000; }
         #video { width: 100%; height: 100%; object-fit: cover; }
         #lock-banner { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 15px 40px; border-radius: 40px; font-weight: bold; z-index: 2100; display: none; }
@@ -93,13 +91,11 @@ let currentMonth = "";
 let lockedDate = null;
 let scanActive = false;
 
-// 今日の日付情報を取得
 const now = new Date();
 const todayKey = now.getFullYear() + String(now.getMonth()+1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
 
-// DB初期化
 const req = indexedDB.open("DiaryApp_v11", 1);
-req.onsuccess = e => { db = e.target.result; loadAllData(true); }; // 初回読込フラグ
+req.onsuccess = e => { db = e.target.result; loadAllData(true); };
 
 function getSlotDate(dateStr) {
     const y = parseInt(dateStr.substring(0,4));
@@ -112,16 +108,10 @@ function getSlotDate(dateStr) {
     return date.getFullYear() + String(date.getMonth() + 1).padStart(2, '0') + String(date.getDate()).padStart(2, '0');
 }
 
-// データ読み込みと表示
 function loadAllData(isInitial = false) {
     db.transaction(["schedule"], "readonly").objectStore("schedule").getAll().onsuccess = e => {
         outlookSchedule = {};
         e.target.result.forEach(row => outlookSchedule[row.date] = row.events);
-        
-        if(isInitial) {
-            // 起動時は「今日」の月をセット
-            currentMonth = todayKey.substring(0, 6);
-        }
         renderTabs(isInitial);
     };
 }
@@ -136,8 +126,12 @@ function renderTabs(shouldJump = false) {
         const sortedDates = Array.from(displayDates).sort().reverse();
         const months = [...new Set(sortedDates.map(d => d.substring(0,6)))];
         
-        // もし今日の月がデータにない場合は最新の月を表示
-        if(!months.includes(currentMonth) && months.length > 0) currentMonth = months[0];
+        // 【修正箇所】起動時はデータがある最新（未来）の月を表示する
+        if(shouldJump && months.length > 0) {
+            currentMonth = months[0]; // 降順ソートなので index 0 が最新月
+        } else if(!currentMonth && months.length > 0) {
+            currentMonth = months[0];
+        }
 
         document.getElementById('tabs').innerHTML = months.map(m => `<span class="tab ${m===currentMonth?'active':''}" onclick="currentMonth='${m}';renderTabs();">${m.substring(0,4)}/${m.substring(4,6)}</span>`).join('');
         
@@ -153,8 +147,6 @@ function renderContent(targetSlotDates, imgDates, shouldJump) {
     targetSlotDates.forEach(slotDate => {
         const card = document.createElement('div');
         card.className = "page-card";
-        
-        // 今日が含まれる見開きならIDを付与して強調
         if (slotDate === todaySlot) {
             card.id = "today-focus-card";
             card.className += " is-today";
@@ -201,24 +193,21 @@ function renderContent(targetSlotDates, imgDates, shouldJump) {
         container.appendChild(card);
     });
 
-    // 描画が終わったタイミングで今日にジャンプ
     if (shouldJump) {
         setTimeout(() => {
             const target = document.getElementById('today-focus-card');
             if (target) {
-                const offset = 120; // ヘッダーとタブの高さ分を考慮
+                const offset = 120;
                 const bodyRect = document.body.getBoundingClientRect().top;
                 const elementRect = target.getBoundingClientRect().top;
-                const elementPosition = elementRect - bodyRect;
-                const offsetPosition = elementPosition - offset;
-
+                const offsetPosition = (elementRect - bodyRect) - offset;
                 window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
             }
-        }, 100);
+        }, 200);
     }
 }
 
-// 以下、カメラ・CSV処理などは前回と同一のため維持
+// モード切替・カメラ・CSV等の補助関数（前回と同様）
 function changeMode(m) {
     document.getElementById('list-view').classList.add('hidden');
     document.getElementById('import-view').classList.add('hidden');
@@ -321,7 +310,7 @@ function processCSV() {
             });
             Object.values(tempSchedule).forEach(data => store.put(data));
         };
-        tx.oncomplete = () => { alert("取込完了"); loadAllData(); changeMode('list'); };
+        tx.oncomplete = () => { alert("取込完了"); loadAllData(true); changeMode('list'); };
     };
     r.readAsText(f, "Shift-JIS");
 }
