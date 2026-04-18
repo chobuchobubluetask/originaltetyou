@@ -3,38 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>統合デジタル手帳 Final Fix Plus</title>
+    <title>統合デジタル手帳 Ultimate Fix</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #27ae60; --danger: #e74c3c; }
         body { font-family: -apple-system, sans-serif; margin: 0; background: #f4f7f6; padding-bottom: 80px; color: #333; overflow-x: hidden; }
         header { background: var(--primary); color: white; padding: 12px; text-align: center; font-weight: bold; }
         
+        /* リスト表示：タブとカード */
         .tab-bar { display: flex; overflow-x: auto; background: #fff; padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
         .tab { padding: 8px 16px; margin-right: 8px; border-radius: 20px; background: #eee; white-space: nowrap; font-size: 0.85rem; }
         .tab.active { background: var(--primary); color: white; }
         
         .page-card { background: white; margin: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; }
-        .card-header { padding: 12px 15px; background: #fdfdfd; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; }
+        .card-header { padding: 12px 15px; background: #fdfdfd; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; align-items: center; }
         .date-label { font-weight: bold; font-size: 1.1rem; color: var(--primary); }
+        
         .img-container { width: 100%; overflow: hidden; background: #fafafa; touch-action: pinch-zoom; }
         .diary-img { width: 100%; display: block; transition: transform 0.2s; }
         
-        /* 予定リストの見た目調整 */
-        .schedule-box { padding: 12px; border-top: 1px solid #eee; }
+        /* 予定リスト：開始〜終了を表示するために幅を調整 */
+        .schedule-box { padding: 12px; border-top: 1px solid #eee; background: #fff; }
         .event-item { font-size: 0.9rem; padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; align-items: flex-start; }
-        .time-tag { color: #2980b9; font-weight: bold; min-width: 100px; font-size: 0.75rem; line-height: 1.4; margin-right: 10px; flex-shrink: 0; }
+        .time-tag { color: #2980b9; font-weight: bold; min-width: 100px; font-size: 0.75rem; line-height: 1.4; margin-right: 12px; flex-shrink: 0; }
 
-        /* カメラ画面 */
+        /* カメラ画面：全画面オーバーレイ */
         #camera-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 2000; }
         #video { width: 100%; height: 100%; object-fit: cover; }
-        #lock-banner { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 15px 40px; border-radius: 40px; font-weight: bold; font-size: 1.4rem; z-index: 2100; box-shadow: 0 4px 20px rgba(0,0,0,0.5); display: none; white-space: nowrap; }
-        .focus-frame { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); width: 250px; height: 250px; border: 2px solid rgba(255,255,255,0.5); border-radius: 20px; z-index: 2050; pointer-events: none; }
+        
+        #lock-banner { 
+            position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
+            background: var(--accent); color: white; padding: 15px 40px; border-radius: 40px;
+            font-weight: bold; font-size: 1.4rem; z-index: 2100; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            display: none; white-space: nowrap;
+        }
+
+        .focus-frame { 
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+            width: 250px; height: 250px; border: 2px solid rgba(255,255,255,0.5); border-radius: 20px; 
+            z-index: 2050; pointer-events: none;
+        }
         .focus-frame.locked { border: 6px solid var(--accent); background: rgba(39, 174, 96, 0.2); }
-        .control-panel { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(255,255,255,0.95); padding: 20px 0 40px 0; text-align: center; border-radius: 30px 30px 0 0; z-index: 2200; }
-        #scan-btn { display: none; margin: 0 auto 20px auto; width: 85%; background: var(--accent); color: white; border: none; padding: 20px; border-radius: 50px; font-size: 1.4rem; font-weight: bold; box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4); }
+
+        .control-panel { 
+            position: absolute; bottom: 0; left: 0; width: 100%; 
+            background: rgba(255,255,255,0.95); padding: 20px 0 40px 0;
+            text-align: center; border-radius: 30px 30px 0 0; z-index: 2200;
+        }
+        
+        #scan-btn { 
+            display: none; margin: 0 auto 20px auto; width: 85%; 
+            background: var(--accent); color: white; border: none; 
+            padding: 20px; border-radius: 50px; font-size: 1.4rem; font-weight: bold;
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+        }
+        
         .btn-sub { border: none; background: none; color: #666; font-size: 1rem; padding: 10px 20px; font-weight: bold; }
 
+        /* 下部ナビゲーション */
         nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; z-index: 1001; }
         nav div { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #95a5a6; }
         nav div.active { color: var(--primary); border-top: 3px solid var(--primary); }
@@ -50,13 +76,14 @@
 </div>
 
 <div id="import-view" class="hidden" style="padding:20px;">
-    <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px;">
-        <h3>Outlook予定取込(.csv)</h3>
+    <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <h3 style="margin-top:0;">Outlook予定取込(.csv)</h3>
+        <p style="font-size:0.8rem; color:#666;">※取り込むと現在の予定リストは最新版に上書きされます</p>
         <input type="file" id="csvFile" accept=".csv" onchange="processCSV()">
     </div>
-    <div style="background:#e8f4fd; padding:15px; border-radius:10px;">
-        <h3>データ同期(.json)</h3>
-        <button onclick="exportAllData()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:5px; margin-bottom:10px;">バックアップ保存</button>
+    <div style="background:#e8f4fd; padding:15px; border-radius:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <h3 style="margin-top:0;">データ同期(.json)</h3>
+        <button onclick="exportAllData()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:5px; margin-bottom:10px; font-weight:bold;">バックアップ保存</button>
         <input type="file" id="importFile" accept=".json" onchange="importAllData()">
     </div>
 </div>
@@ -66,7 +93,7 @@
     <div id="lock-banner">日付をロックしました！</div>
     <div id="focus-frame" class="focus-frame"></div>
     <div class="control-panel">
-        <div id="date-display" style="font-size:1.2rem; font-weight:bold; margin-bottom:15px;">QRを探しています...</div>
+        <div id="date-display" style="font-size:1.2rem; font-weight:bold; margin-bottom:15px; color:#333;">QRを探しています...</div>
         <button id="scan-btn" onclick="executeScan()">ページをスキャンして保存</button>
         <div style="display:flex; justify-content:space-around;">
             <button class="btn-sub" style="color:var(--danger);" onclick="resetScan()">やり直し</button>
@@ -91,6 +118,11 @@ let scanActive = false;
 
 // DB初期化
 const req = indexedDB.open("DiaryApp_v11", 1);
+req.onupgradeneeded = e => {
+    let d = e.target.result;
+    if(!d.objectStoreNames.contains("pages")) d.createObjectStore("pages", { keyPath: "date" });
+    if(!d.objectStoreNames.contains("schedule")) d.createObjectStore("schedule", { keyPath: "date" });
+};
 req.onsuccess = e => { db = e.target.result; loadAllData(); };
 
 function changeMode(m) {
@@ -111,7 +143,7 @@ async function startCamera() {
         scanActive = true;
         resetScan();
         requestAnimationFrame(tick);
-    } catch(err) { alert("カメラ起動エラー"); }
+    } catch(err) { alert("カメラ起動失敗。ブラウザの設定で許可してください。"); }
 }
 
 function stopCamera() {
@@ -142,7 +174,7 @@ function applyLock(date) {
     if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
     document.getElementById('focus-frame').className = "focus-frame locked";
     document.getElementById('lock-banner').style.display = "block";
-    document.getElementById('date-display').innerHTML = `<span style="color:var(--accent)">✔ </span>${date.substring(0,4)}/${date.substring(4,6)}/${date.substring(6,8)}`;
+    document.getElementById('date-display').innerHTML = `<span style="color:var(--accent)">✔</span> ${date.substring(0,4)}/${date.substring(4,6)}/${date.substring(6,8)}`;
     document.getElementById('scan-btn').style.display = "block";
 }
 
@@ -165,7 +197,7 @@ function executeScan() {
     const imgData = c.toDataURL("image/jpeg", 0.75);
     const tx = db.transaction(["pages"], "readwrite");
     tx.objectStore("pages").put({ date: lockedDate, image: imgData });
-    tx.oncomplete = () => { loadAllData(); resetScan(); alert("スキャン完了"); };
+    tx.oncomplete = () => { loadAllData(); resetScan(); alert("保存しました（上書き完了）"); };
 }
 
 function loadAllData() {
@@ -200,9 +232,10 @@ function renderContent(imgDates) {
             let sch = `<div class="schedule-box">`;
             if(outlookSchedule[date]) {
                 outlookSchedule[date].forEach(ev => { 
-                    // 開始 〜 終了 の形式で表示
-                    const timeRange = `${ev.start.substring(0,5)} 〜 ${ev.end.substring(0,5)}`;
-                    sch += `<div class="event-item"><span class="time-tag">${timeRange}</span>${ev.title}</div>`; 
+                    const s = ev.start ? ev.start.substring(0,5) : "--:--";
+                    const end = ev.end ? ev.end.substring(0,5) : "";
+                    const timeDisp = end ? `${s} 〜 ${end}` : s;
+                    sch += `<div class="event-item"><span class="time-tag">${timeDisp}</span>${ev.title}</div>`; 
                 });
             }
             sch += `</div>`;
@@ -220,7 +253,7 @@ function toggleZoom(container) {
 }
 
 function deletePage(date) {
-    if(confirm("削除しますか？")) db.transaction(["pages"], "readwrite").objectStore("pages").delete(date).oncomplete = () => loadAllData();
+    if(confirm("この画像を削除しますか？")) db.transaction(["pages"], "readwrite").objectStore("pages").delete(date).oncomplete = () => loadAllData();
 }
 
 function processCSV() {
@@ -231,24 +264,26 @@ function processCSV() {
         const rows = e.target.result.split(/\r(?!\n)|\n|\r\n/);
         const tx = db.transaction(["schedule"], "readwrite");
         const store = tx.objectStore("schedule");
-        rows.forEach((line, idx) => {
-            if(idx === 0 || !line.trim()) return;
-            const c = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-            if(c && c.length >= 6) {
-                const clean = c.map(v => v.replace(/^"|"$/g, '').trim());
-                const d = clean[1].split('/');
-                if(d.length === 3) {
-                    const key = d[0] + d[1].padStart(2,'0') + d[2].padStart(2,'0');
-                    store.get(key).onsuccess = event => {
-                        let data = event.target.result || { date: key, events: [] };
-                        // インデックス[2]を開始時刻、[4]を終了時刻として取得
-                        data.events.push({ start: clean[2], end: clean[4], title: clean[0] });
-                        store.put(data);
-                    };
+        
+        // 重複防止：一旦スケジュールを全消去して最新のCSVで上書きする（VBAのクリア処理に近い感覚です）
+        store.clear().onsuccess = () => {
+            let tempSchedule = {};
+            rows.forEach((line, idx) => {
+                if(idx === 0 || !line.trim()) return;
+                const c = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                if(c && c.length >= 6) {
+                    const clean = c.map(v => v.replace(/^"|"$/g, '').trim());
+                    const d = clean[1].split('/');
+                    if(d.length === 3) {
+                        const key = d[0] + d[1].padStart(2,'0') + d[2].padStart(2,'0');
+                        if(!tempSchedule[key]) tempSchedule[key] = { date: key, events: [] };
+                        tempSchedule[key].events.push({ start: clean[2], end: clean[4], title: clean[0] });
+                    }
                 }
-            }
-        });
-        tx.oncomplete = () => { alert("取込完了（終了時刻も反映されました）"); loadAllData(); changeMode('list'); };
+            });
+            Object.values(tempSchedule).forEach(data => store.put(data));
+        };
+        tx.oncomplete = () => { alert("最新の予定を取り込みました"); loadAllData(); changeMode('list'); };
     };
     r.readAsText(f, "Shift-JIS");
 }
