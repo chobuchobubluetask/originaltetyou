@@ -3,43 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>統合デジタル手帳 Pro</title>
+    <title>統合デジタル手帳 Ultimate</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
-        :root { --primary: #2c3e50; --accent: #27ae60; --danger: #e74c3c; }
-        body { font-family: -apple-system, sans-serif; margin: 0; background: #f0f2f5; padding-bottom: 80px; color: #333; }
+        :root { --primary: #2c3e50; --accent: #27ae60; --danger: #e74c3c; --gold: #f1c40f; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background: #f4f7f6; padding-bottom: 80px; color: #333; }
         header { background: var(--primary); color: white; padding: 12px; position: sticky; top: 0; z-index: 1000; text-align: center; font-weight: bold; }
         
-        .tab-bar { display: flex; overflow-x: auto; background: #fff; padding: 8px; border-bottom: 1px solid #ccc; position: sticky; top: 43px; z-index: 999; }
-        .tab { padding: 6px 14px; margin-right: 8px; border-radius: 20px; background: #ecf0f1; white-space: nowrap; cursor: pointer; font-size: 0.8rem; }
+        /* リスト・タブ */
+        .tab-bar { display: flex; overflow-x: auto; background: #fff; padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 43px; z-index: 999; }
+        .tab { padding: 8px 16px; margin-right: 8px; border-radius: 20px; background: #eee; white-space: nowrap; cursor: pointer; font-size: 0.85rem; }
         .tab.active { background: var(--primary); color: white; }
         
-        .page-card { background: white; margin: 15px 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden; }
-        .card-header { padding: 10px 15px; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+        .page-card { background: white; margin: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; }
+        .card-header { padding: 12px 15px; background: #fdfdfd; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
         .date-label { font-weight: bold; font-size: 1.1rem; color: var(--primary); }
-        .img-container { width: 100%; overflow: hidden; background: #eee; touch-action: pinch-zoom; }
-        .diary-img { width: 100%; display: block; transition: transform 0.2s ease; }
-        .schedule-box { padding: 12px; background: #fff; border-top: 1px solid #eee; }
-        .event-item { font-size: 0.9rem; padding: 6px 0; border-bottom: 1px dashed #eee; display: flex; }
-        .time-tag { color: #2980b9; font-weight: bold; min-width: 80px; }
+        .img-container { width: 100%; overflow: hidden; background: #fafafa; touch-action: pinch-zoom; }
+        .diary-img { width: 100%; display: block; transition: transform 0.2s; }
+        .schedule-box { padding: 12px; border-top: 1px solid #eee; }
+        .event-item { font-size: 0.9rem; padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; }
+        .time-tag { color: #2980b9; font-weight: bold; min-width: 75px; }
 
-        /* スキャン画面 */
+        /* カメラUI */
         #camera-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; display: flex; flex-direction: column; }
         #video { width: 100%; flex: 1; object-fit: cover; }
-        .camera-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 75%; pointer-events: none; display: flex; justify-content: center; align-items: center; }
-        .scan-box { width: 260px; height: 260px; border: 2px solid rgba(255,255,255,0.5); border-radius: 20px; box-shadow: 0 0 0 4000px rgba(0,0,0,0.6); transition: all 0.3s; }
-        .scan-box.locked { border: 5px solid var(--accent); background: rgba(39, 174, 96, 0.2); box-shadow: 0 0 0 4000px rgba(39, 174, 96, 0.4); }
         
-        .camera-ui { background: white; padding: 20px; text-align: center; border-radius: 25px 25px 0 0; min-height: 180px; }
-        .status-msg { font-weight: bold; margin-bottom: 5px; color: #666; }
-        .date-display { font-size: 1.6rem; font-weight: bold; margin-bottom: 15px; color: var(--primary); height: 2.4rem; }
+        .overlay-layer { position: absolute; top: 0; left: 0; width: 100%; height: 70%; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .focus-frame { width: 260px; height: 260px; border: 2px solid rgba(255,255,255,0.4); border-radius: 20px; position: relative; transition: 0.3s; }
+        .focus-frame.locked { border: 6px solid var(--accent); background: rgba(39, 174, 96, 0.2); }
         
-        .btn-scan-exec { background: var(--accent); color: white; border: none; padding: 15px 40px; border-radius: 30px; font-size: 1.2rem; font-weight: bold; width: 80%; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3); }
-        .btn-scan-exec:disabled { background: #ccc; box-shadow: none; opacity: 0.5; }
+        /* ロック時のデカ文字案内 */
+        #lock-banner { position: absolute; top: 20%; background: var(--accent); color: white; padding: 10px 30px; border-radius: 30px; font-weight: bold; font-size: 1.2rem; display: none; z-index: 2100; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
-        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ccc; z-index: 1001; }
+        .control-panel { background: white; padding: 25px; text-align: center; border-radius: 25px 25px 0 0; }
+        .date-info { font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; color: var(--primary); }
+        
+        /* スキャン実行ボタン（通常は隠す） */
+        #scan-btn { display: none; width: 90%; background: var(--accent); color: white; border: none; padding: 18px; border-radius: 40px; font-size: 1.3rem; font-weight: bold; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+
+        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; z-index: 1001; }
         nav div { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #95a5a6; }
-        nav div.active { color: var(--primary); }
+        nav div.active { color: var(--primary); border-top: 3px solid var(--primary); }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -47,36 +52,35 @@
 
 <header>統合デジタル手帳</header>
 <div id="tabs" class="tab-bar"></div>
-
 <div id="list-view"><div id="main-content"></div></div>
 
 <div id="import-view" class="hidden" style="padding:20px;">
-    <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px;">
-        <h3>📅 Outlook予定の取込</h3>
+    <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <h3 style="margin-top:0;">Outlook予定取込</h3>
         <input type="file" id="csvFile" accept=".csv" onchange="processCSV()">
     </div>
-    <div style="background:#e8f4fd; padding:15px; border-radius:10px;">
-        <h3>🔄 同期・バックアップ</h3>
-        <button onclick="exportAllData()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:5px; margin-bottom:10px;">データをファイルに保存</button>
+    <div style="background:#e8f4fd; padding:15px; border-radius:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <h3 style="margin-top:0;">データ同期</h3>
+        <button onclick="exportAllData()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:5px; margin-bottom:10px; font-weight:bold;">バックアップ保存</button>
         <input type="file" id="importFile" accept=".json" onchange="importAllData()">
     </div>
 </div>
 
 <div id="camera-view" class="hidden">
     <video id="video" autoplay playsinline></video>
-    <div class="camera-overlay"><div id="scan-box" class="scan-box"></div></div>
-    <div class="camera-ui">
-        <div id="scan-status" class="status-msg">QRをスキャンしてください</div>
-        <div id="detected-date" class="date-display">---- / -- / --</div>
-        <div id="ui-actions">
-            <button id="capture-btn" onclick="saveAsScan()" class="btn-scan-exec" disabled>スキャン待機中...</button>
-            <div style="margin-top:15px; display:flex; justify-content:space-around;">
-                <button onclick="resetScan()" style="border:none; background:none; color:var(--danger); font-weight:bold;">やり直し</button>
-                <button onclick="changeMode('list')" style="border:none; background:none; color:#666;">閉じる</button>
-            </div>
+    <div class="overlay-layer">
+        <div id="lock-banner">日付をロックしました！</div>
+        <div id="focus-frame" class="focus-frame"></div>
+    </div>
+    <div class="control-panel">
+        <div id="date-display" class="date-info">QRを探しています...</div>
+        <button id="scan-btn" onclick="executeScan()">ページをスキャンして保存</button>
+        <div style="margin-top:15px; display:flex; justify-content:space-around;">
+            <button onclick="resetScan()" style="border:none; background:none; color:var(--danger); font-weight:bold; font-size:1rem;">やり直し</button>
+            <button onclick="changeMode('list')" style="border:none; background:none; color:#666; font-size:1rem;">キャンセル</button>
         </div>
     </div>
-    <canvas id="qr-canvas" style="display:none;"></canvas>
+    <canvas id="canvas-temp" style="display:none;"></canvas>
 </div>
 
 <nav>
@@ -90,9 +94,15 @@ let db;
 let outlookSchedule = {};
 let currentMonth = "";
 let lockedDate = null;
-let scanning = false;
+let scanActive = false;
 
-const req = indexedDB.open("DiaryAppDB_Pro", 9);
+// DB初期化
+const req = indexedDB.open("DiaryApp_v10", 1);
+req.onupgradeneeded = e => {
+    let d = e.target.result;
+    d.createObjectStore("pages", { keyPath: "date" });
+    d.createObjectStore("schedule", { keyPath: "date" });
+};
 req.onsuccess = e => { db = e.target.result; loadAllData(); };
 
 function changeMode(m) {
@@ -100,120 +110,82 @@ function changeMode(m) {
     document.getElementById(m + '-view').classList.remove('hidden');
     document.querySelectorAll('nav div').forEach(d => d.classList.remove('active'));
     document.getElementById('nav-' + m).classList.add('active');
-    if(m === 'camera') startCam(); else stopCam();
+    if(m === 'camera') startCamera(); else stopCamera();
 }
 
-async function startCam() {
+async function startCamera() {
     const v = document.getElementById('video');
     try {
-        const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", focusMode: "continuous", width: { ideal: 1920 }, height: { ideal: 1080 } } });
-        v.srcObject = s;
-        scanning = true;
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", focusMode: "continuous", width: { ideal: 1920 } } });
+        v.srcObject = stream;
+        scanActive = true;
         resetScan();
-        requestAnimationFrame(scanLoop);
-    } catch(err) { alert("カメラを開始できません"); }
+        requestAnimationFrame(tick);
+    } catch(err) { alert("カメラ起動失敗: " + err); }
 }
 
-function stopCam() {
-    scanning = false;
+function stopCamera() {
+    scanActive = false;
     const v = document.getElementById('video');
     if(v.srcObject) v.srcObject.getTracks().forEach(t => t.stop());
 }
 
-function scanLoop() {
-    if(!scanning || lockedDate) return;
+function tick() {
+    if(!scanActive || lockedDate) return;
     const v = document.getElementById('video');
-    const c = document.getElementById('qr-canvas');
+    const c = document.getElementById('canvas-temp');
     if(v.readyState === v.HAVE_ENOUGH_DATA) {
         c.width = v.videoWidth; c.height = v.videoHeight;
         const ctx = c.getContext('2d', { willReadFrequently: true });
         ctx.drawImage(v, 0, 0);
         const code = jsQR(ctx.getImageData(0,0,c.width,c.height).data, c.width, c.height);
-        if(code && code.data.length === 8) {
-            lockDate(code.data);
+        if(code && code.data.length === 8 && !isNaN(code.data)) {
+            applyLock(code.data);
             return;
         }
     }
-    requestAnimationFrame(scanLoop);
+    requestAnimationFrame(tick);
 }
 
-function lockDate(date) {
+function applyLock(date) {
     lockedDate = date;
-    document.getElementById('scan-box').classList.add('locked');
-    document.getElementById('scan-status').innerText = "読み込み完了！全体を写してボタンを押す";
-    document.getElementById('detected-date').innerText = `${date.substring(0,4)}/${date.substring(4,6)}/${date.substring(6,8)}`;
-    const btn = document.getElementById('capture-btn');
-    btn.disabled = false;
-    btn.innerText = "ページをスキャンして保存";
-    if(navigator.vibrate) navigator.vibrate(100);
+    if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    
+    // UIをロック状態へ
+    document.getElementById('focus-frame').classList.add('locked');
+    document.getElementById('lock-banner').style.display = "block";
+    document.getElementById('date-display').innerHTML = `<span style="color:var(--accent)">✔</span> ${date.substring(0,4)}/${date.substring(4,6)}/${date.substring(6,8)}`;
+    document.getElementById('scan-btn').style.display = "block";
 }
 
 function resetScan() {
     lockedDate = null;
-    document.getElementById('scan-box').classList.remove('locked');
-    document.getElementById('scan-status').innerText = "QRをスキャンして日付を確定";
-    document.getElementById('detected-date').innerText = "---- / -- / --";
-    const btn = document.getElementById('capture-btn');
-    btn.disabled = true;
-    btn.innerText = "スキャン待機中...";
-    if(scanning) requestAnimationFrame(scanLoop);
+    document.getElementById('focus-frame').classList.remove('locked');
+    document.getElementById('lock-banner').style.display = "none";
+    document.getElementById('date-display').innerText = "QRを探しています...";
+    document.getElementById('scan-btn').style.display = "none";
+    if(scanActive) requestAnimationFrame(tick);
 }
 
-function saveAsScan() {
+function executeScan() {
     const v = document.getElementById('video');
     const c = document.createElement('canvas');
-    const ctx = c.getContext('2d');
     c.width = v.videoWidth; c.height = v.videoHeight;
+    const ctx = c.getContext('2d');
     ctx.filter = "contrast(1.1) brightness(1.05)";
     ctx.drawImage(v, 0, 0);
     
-    const data = c.toDataURL("image/jpeg", 0.8);
+    const imgData = c.toDataURL("image/jpeg", 0.75);
     const tx = db.transaction(["pages"], "readwrite");
-    tx.objectStore("pages").put({ date: lockedDate, image: data });
+    tx.objectStore("pages").put({ date: lockedDate, image: imgData });
     tx.oncomplete = () => {
-        alert(lockedDate + " をスキャンしました");
+        alert(lockedDate + " を保存しました（上書き完了）");
         loadAllData();
-        resetScan(); // 次の撮影のためにリセット
+        resetScan();
     };
 }
 
-function deletePage(date) {
-    if(confirm(date + " の画像を削除しますか？")) {
-        db.transaction(["pages"], "readwrite").objectStore("pages").delete(date).oncomplete = () => loadAllData();
-    }
-}
-
-function processCSV() {
-    const f = document.getElementById('csvFile').files[0];
-    const r = new FileReader();
-    r.onload = e => {
-        const rows = e.target.result.split(/\r(?!\n)|\n|\r\n/);
-        let events = [];
-        rows.forEach((line, idx) => {
-            if(idx === 0 || !line.trim()) return;
-            const c = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-            if(c && c.length >= 6) {
-                const clean = c.map(v => v.replace(/^"|"$/g, '').trim());
-                const d = clean[1].split('/');
-                if(d.length === 3) {
-                    const key = d[0] + d[1].padStart(2,'0') + d[2].padStart(2,'0');
-                    events.push({ date: key, start: clean[2], title: clean[0] });
-                }
-            }
-        });
-        const tx = db.transaction(["schedule"], "readwrite");
-        events.forEach(ev => {
-            tx.objectStore("schedule").get(ev.date).onsuccess = e => {
-                let existing = e.target.result ? e.target.result.events : [];
-                existing.push(ev);
-                tx.objectStore("schedule").put({ date: ev.date, events: existing });
-            };
-        });
-        tx.oncomplete = () => { alert("取込完了"); loadAllData(); changeMode('list'); };
-    };
-    r.readAsText(f, "Shift-JIS");
-}
-
+// データ読み込み・表示系
 function loadAllData() {
     db.transaction(["schedule"], "readonly").objectStore("schedule").getAll().onsuccess = e => {
         outlookSchedule = {};
@@ -229,11 +201,11 @@ function renderTabs() {
         const months = [...new Set(allDates.map(d => d.substring(0,6)))].sort().reverse();
         if(!currentMonth && months.length > 0) currentMonth = months[0];
         document.getElementById('tabs').innerHTML = months.map(m => `<span class="tab ${m===currentMonth?'active':''}" onclick="currentMonth='${m}';renderTabs();">${m.substring(0,4)}/${m.substring(4,6)}</span>`).join('');
-        renderList(imgDates);
+        renderContent(imgDates);
     };
 }
 
-function renderList(imgDates) {
+function renderContent(imgDates) {
     const container = document.getElementById('main-content');
     container.innerHTML = "";
     const targetDates = [...new Set([...imgDates, ...Object.keys(outlookSchedule)])].filter(d => d.startsWith(currentMonth)).sort().reverse();
@@ -241,27 +213,64 @@ function renderList(imgDates) {
     targetDates.forEach(date => {
         const card = document.createElement('div');
         card.className = "page-card";
-        let sch = `<div class="schedule-box">`;
-        if(outlookSchedule[date]) {
-            outlookSchedule[date].forEach(ev => { sch += `<div class="event-item"><span class="time-tag">${ev.start.substring(0,5)}</span>${ev.title}</div>`; });
-        }
-        sch += `</div>`;
         db.transaction(["pages"],"readonly").objectStore("pages").get(date).onsuccess = e => {
             const hasImg = !!e.target.result;
-            card.innerHTML = `<div class="card-header"><span class="date-label">${date.substring(0,4)}/${date.substring(4,6)}/${date.substring(6,8)}</span>${hasImg ? `<button class="btn-del" style="border:none;background:none;color:var(--danger);font-size:0.75rem;" onclick="deletePage('${date}')">画像削除</button>` : ''}</div><div class="img-container">${hasImg ? `<img src="${e.target.result.image}" class="diary-img" onclick="toggleZoom(this)">` : `<div style="padding:40px; text-align:center; color:#ccc; background:#f9f9f9;">(手書き画像なし)</div>`}</div>${sch}`;
+            let sch = `<div class="schedule-box">`;
+            if(outlookSchedule[date]) {
+                outlookSchedule[date].forEach(ev => { sch += `<div class="event-item"><span class="time-tag">${ev.start.substring(0,5)}</span>${ev.title}</div>`; });
+            }
+            sch += `</div>`;
+            card.innerHTML = `<div class="card-header"><span class="date-label">${date.substring(0,4)}/${date.substring(4,6)}/${date.substring(6,8)}</span>${hasImg ? `<button style="border:none;background:none;color:var(--danger);font-size:0.8rem;" onclick="deletePage('${date}')">画像削除</button>` : ''}</div><div class="img-container" onclick="toggleZoom(this)">${hasImg ? `<img src="${e.target.result.image}" class="diary-img">` : `<div style="padding:40px; text-align:center; color:#ccc; background:#f9f9f9;">(画像なし)</div>`}</div>${sch}`;
         };
         container.appendChild(card);
     });
 }
 
-function toggleZoom(img) {
+function toggleZoom(container) {
+    const img = container.querySelector('img');
+    if(!img) return;
     if(img.style.transform === "scale(2)") {
         img.style.transform = "scale(1)";
-        img.parentElement.style.overflow = "hidden";
+        container.style.overflow = "hidden";
     } else {
         img.style.transform = "scale(2)";
-        img.parentElement.style.overflow = "auto";
+        container.style.overflow = "auto";
     }
+}
+
+function deletePage(date) {
+    if(confirm("この画像を削除しますか？")) {
+        db.transaction(["pages"], "readwrite").objectStore("pages").delete(date).oncomplete = () => loadAllData();
+    }
+}
+
+// CSV・インポート系
+function processCSV() {
+    const f = document.getElementById('csvFile').files[0];
+    const r = new FileReader();
+    r.onload = e => {
+        const rows = e.target.result.split(/\r(?!\n)|\n|\r\n/);
+        const tx = db.transaction(["schedule"], "readwrite");
+        const store = tx.objectStore("schedule");
+        rows.forEach((line, idx) => {
+            if(idx === 0 || !line.trim()) return;
+            const c = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            if(c && c.length >= 6) {
+                const clean = c.map(v => v.replace(/^"|"$/g, '').trim());
+                const d = clean[1].split('/');
+                if(d.length === 3) {
+                    const key = d[0] + d[1].padStart(2,'0') + d[2].padStart(2,'0');
+                    store.get(key).onsuccess = event => {
+                        let data = event.target.result || { date: key, events: [] };
+                        data.events.push({ start: clean[2], title: clean[0] });
+                        store.put(data);
+                    };
+                }
+            }
+        });
+        tx.oncomplete = () => { alert("取込完了"); loadAllData(); changeMode('list'); };
+    };
+    r.readAsText(f, "Shift-JIS");
 }
 
 async function exportAllData() {
@@ -273,6 +282,7 @@ async function exportAllData() {
     a.download = `diary_backup.json`;
     a.click();
 }
+
 function importAllData() {
     const f = document.getElementById('importFile').files[0];
     const r = new FileReader();
