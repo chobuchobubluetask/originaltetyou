@@ -2,77 +2,97 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>統合デジタル手帳</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; margin: 0; background: #f0f2f5; padding-bottom: 80px; }
-        header { background: #2c3e50; color: white; padding: 12px; position: sticky; top: 0; z-index: 1000; text-align: center; }
-        .tab-bar { display: flex; overflow-x: auto; background: #fff; padding: 8px; border-bottom: 1px solid #ccc; position: sticky; top: 45px; z-index: 999; }
-        .tab { padding: 8px 16px; margin-right: 8px; border-radius: 20px; background: #ecf0f1; white-space: nowrap; cursor: pointer; font-size: 0.85rem; }
-        .tab.active { background: #2c3e50; color: white; }
-        .week-container { padding: 10px; }
-        .week-title { font-weight: bold; padding: 5px; background: #bdc3c7; border-radius: 4px; margin-bottom: 10px; }
-        .page-card { background: white; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 8px solid #ccc; overflow: hidden; }
-        .page-left { border-left-color: #27ae60; }
-        .page-right { border-left-color: #2980b9; }
-        .diary-img { width: 100%; display: block; background: #eee; }
-        .schedule-box { padding: 10px; font-size: 0.85rem; }
-        .event-item { padding: 4px 0; border-bottom: 1px dashed #eee; display: flex; }
-        .time-tag { color: #2980b9; font-weight: bold; min-width: 80px; }
+        :root { --primary: #2c3e50; --accent: #27ae60; --danger: #e74c3c; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background: #f0f2f5; padding-bottom: 80px; color: #333; }
+        header { background: var(--primary); color: white; padding: 12px; position: sticky; top: 0; z-index: 1000; text-align: center; font-weight: bold; }
+        
+        /* リスト表示 */
+        .tab-bar { display: flex; overflow-x: auto; background: #fff; padding: 8px; border-bottom: 1px solid #ccc; position: sticky; top: 43px; z-index: 999; }
+        .tab { padding: 6px 14px; margin-right: 8px; border-radius: 20px; background: #ecf0f1; white-space: nowrap; cursor: pointer; font-size: 0.8rem; }
+        .tab.active { background: var(--primary); color: white; }
+        .page-card { background: white; margin: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden; position: relative; }
+        .card-header { padding: 8px 12px; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+        .date-label { font-weight: bold; color: var(--primary); }
+        .btn-del { background: none; border: 1px solid var(--danger); color: var(--danger); padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; }
+        .diary-img { width: 100%; display: block; background: #eee; min-height: 200px; object-fit: contain; }
+        .schedule-box { padding: 12px; background: #fff; }
+        .event-item { font-size: 0.85rem; padding: 6px 0; border-bottom: 1px dashed #eee; display: flex; }
+        .time-tag { color: #2980b9; font-weight: bold; min-width: 75px; }
+
+        /* カメラ画面 (2ステップ) */
+        #camera-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; display: flex; flex-direction: column; }
+        #video { width: 100%; flex: 1; object-fit: cover; }
+        .camera-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .scan-box { width: 250px; height: 250px; border: 2px solid #fff; border-radius: 10px; box-shadow: 0 0 0 4000px rgba(0,0,0,0.5); position: relative; }
+        .scan-box.locked { border-color: var(--accent); box-shadow: 0 0 0 4000px rgba(39, 174, 96, 0.2); }
+        .camera-ui { background: white; padding: 20px; text-align: center; border-radius: 20px 20px 0 0; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; }
+        .btn-capture { width: 80px; height: 80px; border-radius: 40px; border: 5px solid #ddd; background: white; cursor: pointer; }
+        .btn-capture:disabled { background: #eee; }
+        .btn-capture.ready { border-color: var(--accent); background: var(--accent); }
+
         nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ccc; z-index: 1001; }
-        nav div { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; }
-        .hidden { display: none; }
-        .admin-card { background: white; margin: 10px; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .btn { width: 100%; padding: 12px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-blue { background: #3498db; color: white; }
-        .btn-green { background: #27ae60; color: white; }
+        nav div { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #7f8c8d; }
+        nav div.active { color: var(--primary); }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<header id="view-title">統合デジタル手帳</header>
+<header>統合デジタル手帳</header>
 <div id="tabs" class="tab-bar"></div>
 
 <div id="list-view"><div id="main-content"></div></div>
 
-<div id="import-view" class="hidden">
-    <div class="admin-card">
-        <h3>1. Outlook予定の読込</h3>
+<div id="import-view" class="hidden" style="padding:20px;">
+    <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px;">
+        <h3>Outlook CSV取込</h3>
         <input type="file" id="csvFile" accept=".csv" onchange="processCSV()">
     </div>
-    <div class="admin-card" style="background:#e8f4fd;">
-        <h3>2. 他デバイスとの同期</h3>
-        <button class="btn btn-blue" onclick="exportAllData()">全データをファイルに保存</button>
-        <p style="font-size:0.7rem; margin-top:10px;">スマホ側で以下のボタンから読み込みます：</p>
+    <div style="background:#e8f4fd; padding:15px; border-radius:10px;">
+        <h3>同期・バックアップ</h3>
+        <button onclick="exportAllData()" style="width:100%; padding:10px; margin-bottom:10px;">データを保存</button>
         <input type="file" id="importFile" accept=".json" onchange="importAllData()">
     </div>
 </div>
 
 <div id="camera-view" class="hidden">
-    <div style="position:relative; background:#000;">
-        <video id="video" style="width:100%; max-height:70vh;" autoplay playsinline></video>
-        <div id="scan-frame" style="position:absolute; top:20%; left:10%; width:80%; height:60%; border:2px solid #27ae60; pointer-events:none;"></div>
+    <video id="video" autoplay playsinline></video>
+    <div class="camera-overlay">
+        <div id="scan-box" class="scan-box"></div>
     </div>
-    <div style="padding:15px; text-align:center; background:#fff;">
-        <p style="font-size:0.8rem; color:#666;">枠内に8桁の日付QRコードを写してください</p>
-        <button onclick="captureQR()" class="btn btn-green">スキャンして保存</button>
+    <div class="camera-ui">
+        <div id="scan-status" class="status-badge" style="background:#eee;">QRをスキャンしてください</div>
+        <div id="detected-date" style="font-size:1.2rem; font-weight:bold; margin-bottom:10px;">----/--/--</div>
+        <div style="display:flex; justify-content:space-around; align-items:center;">
+            <button onclick="resetScan()" style="border:none; background:none; color:#666;">やり直し</button>
+            <button id="capture-btn" onclick="savePhoto()" class="btn-capture" disabled></button>
+            <button onclick="changeMode('list')" style="border:none; background:none; color:#666;">戻る</button>
+        </div>
     </div>
-    <canvas id="canvas" style="display:none;"></canvas>
+    <canvas id="qr-canvas" style="display:none;"></canvas>
+    <canvas id="photo-canvas" style="display:none;"></canvas>
 </div>
 
 <nav>
-    <div onclick="changeMode('list')">📖 見る</div>
-    <div onclick="changeMode('camera')">📸 撮影</div>
-    <div onclick="changeMode('import')">📥 設定</div>
+    <div id="nav-list" onclick="changeMode('list')">📖 見る</div>
+    <div id="nav-camera" onclick="changeMode('camera')">📸 撮影</div>
+    <div id="nav-import" onclick="changeMode('import')">📥 設定</div>
 </nav>
 
 <script>
 let db;
 let outlookSchedule = {};
 let currentMonth = "";
+let lockedDate = null;
+let scanning = false;
 
-const req = indexedDB.open("DiaryDB", 7);
+// DB初期化
+const req = indexedDB.open("DiaryAppDB", 8);
 req.onupgradeneeded = e => {
     let d = e.target.result;
     if(!d.objectStoreNames.contains("pages")) d.createObjectStore("pages", { keyPath: "date" });
@@ -81,20 +101,105 @@ req.onupgradeneeded = e => {
 req.onsuccess = e => { db = e.target.result; loadAllData(); };
 
 function changeMode(m) {
-    document.getElementById('list-view').classList.toggle('hidden', m !== 'list');
-    document.getElementById('import-view').classList.toggle('hidden', m !== 'import');
-    document.getElementById('camera-view').classList.toggle('hidden', m !== 'camera');
-    if(m === 'camera') startCam();
+    document.querySelectorAll('body > div:not(.tab-bar):not(header):not(nav)').forEach(el => el.classList.add('hidden'));
+    document.getElementById(m + '-view').classList.remove('hidden');
+    document.querySelectorAll('nav div').forEach(d => d.classList.remove('active'));
+    document.getElementById('nav-' + m).classList.add('active');
+    
+    if(m === 'camera') {
+        startCam();
+    } else {
+        stopCam();
+    }
 }
 
+// カメラ制御 & リアルタイムスキャン
 async function startCam() {
-    const v = document.getElementById('video');
+    const video = document.getElementById('video');
     try {
-        const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", focusMode: "continuous" } });
-        v.srcObject = s;
-    } catch(err) { alert("カメラが使えません: " + err); }
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", focusMode: "continuous" } });
+        video.srcObject = stream;
+        scanning = true;
+        resetScan();
+        requestAnimationFrame(scanLoop);
+    } catch(err) { alert("カメラを開始できません"); }
 }
 
+function stopCam() {
+    scanning = false;
+    const video = document.getElementById('video');
+    if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+}
+
+function scanLoop() {
+    if(!scanning || lockedDate) return;
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('qr-canvas');
+    if(video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imgData.data, imgData.width, imgData.height);
+        
+        if(code && code.data.length === 8 && !isNaN(code.data)) {
+            lockDate(code.data);
+        }
+    }
+    requestAnimationFrame(scanLoop);
+}
+
+function lockDate(date) {
+    lockedDate = date;
+    document.getElementById('scan-box').classList.add('locked');
+    document.getElementById('scan-status').innerText = "日付を確認しました！";
+    document.getElementById('scan-status').style.background = "#27ae60";
+    document.getElementById('scan-status').style.color = "#white";
+    document.getElementById('detected-date').innerText = `${date.substring(0,4)}/${date.substring(4,6)}/${date.substring(6,8)}`;
+    document.getElementById('capture-btn').disabled = false;
+    document.getElementById('capture-btn').classList.add('ready');
+    if(window.navigator.vibrate) window.navigator.vibrate(100);
+}
+
+function resetScan() {
+    lockedDate = null;
+    document.getElementById('scan-box').classList.remove('locked');
+    document.getElementById('scan-status').innerText = "QRをスキャンしてください";
+    document.getElementById('scan-status').style.background = "#eee";
+    document.getElementById('detected-date').innerText = "----/--/--";
+    document.getElementById('capture-btn').disabled = true;
+    document.getElementById('capture-btn').classList.remove('ready');
+    if(scanning) requestAnimationFrame(scanLoop);
+}
+
+// ページ保存
+function savePhoto() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('photo-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    
+    const imageData = canvas.toDataURL("image/jpeg", 0.7);
+    const tx = db.transaction(["pages"], "readwrite");
+    tx.objectStore("pages").put({ date: lockedDate, image: imageData });
+    tx.oncomplete = () => {
+        alert(lockedDate + " のページを保存しました");
+        loadAllData();
+        changeMode('list');
+    };
+}
+
+// 削除機能
+function deletePage(date) {
+    if(confirm(date + " の画像を削除しますか？")) {
+        const tx = db.transaction(["pages"], "readwrite");
+        tx.objectStore("pages").delete(date);
+        tx.oncomplete = () => loadAllData();
+    }
+}
+
+// CSV取込ロジック (yyyymmdd補正付き)
 function processCSV() {
     const f = document.getElementById('csvFile').files[0];
     const r = new FileReader();
@@ -109,59 +214,17 @@ function processCSV() {
                 const d = clean[1].split('/');
                 if(d.length === 3) {
                     const key = d[0] + d[1].padStart(2,'0') + d[2].padStart(2,'0');
-                    allEvents.push({ date: key, start: clean[2], title: clean[0], allDay: clean[5] });
+                    allEvents.push({ date: key, start: clean[2], title: clean[0] });
                 }
             }
         });
         const tx = db.transaction(["schedule"], "readwrite");
-        const store = tx.objectStore("schedule");
         const grouped = {};
         allEvents.forEach(ev => { if(!grouped[ev.date]) grouped[ev.date]=[]; grouped[ev.date].push(ev); });
-        Object.keys(grouped).forEach(k => store.put({ date: k, events: grouped[k] }));
-        tx.oncomplete = () => { alert(allEvents.length + "件取込完了"); loadAllData(); changeMode('list'); };
+        Object.keys(grouped).forEach(k => tx.objectStore("schedule").put({ date: k, events: grouped[k] }));
+        tx.oncomplete = () => { alert("予定を取り込みました"); loadAllData(); changeMode('list'); };
     };
     r.readAsText(f, "Shift-JIS");
-}
-
-function captureQR() {
-    const v = document.getElementById('video');
-    const c = document.getElementById('canvas');
-    const ctx = c.getContext('2d', { willReadFrequently: true });
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    ctx.drawImage(v, 0, 0);
-    const imgData = ctx.getImageData(0, 0, c.width, c.height);
-    const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
-    
-    if (code && code.data.length === 8) {
-        db.transaction(["pages"], "readwrite").objectStore("pages").put({ date: code.data, image: c.toDataURL("image/jpeg", 0.7) })
-          .oncomplete = () => { alert("保存: " + code.data); loadAllData(); changeMode('list'); };
-    } else {
-        alert("QRコードが認識できません。もう少し離すか、明るい場所で試してください。");
-    }
-}
-
-async function exportAllData() {
-    const tx = db.transaction(["pages", "schedule"], "readonly");
-    const pages = await new Promise(r => tx.objectStore("pages").getAll().onsuccess = e => r(e.target.result));
-    const schedule = await new Promise(r => tx.objectStore("schedule").getAll().onsuccess = e => r(e.target.result));
-    const blob = new Blob([JSON.stringify({ pages, schedule })], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `diary_backup.json`;
-    a.click();
-}
-
-function importAllData() {
-    const f = document.getElementById('importFile').files[0];
-    const r = new FileReader();
-    r.onload = e => {
-        const d = JSON.parse(e.target.result);
-        const tx = db.transaction(["pages", "schedule"], "readwrite");
-        d.pages.forEach(p => tx.objectStore("pages").put(p));
-        d.schedule.forEach(s => tx.objectStore("schedule").put(s));
-        tx.oncomplete = () => { alert("復元完了"); location.reload(); };
-    };
-    r.readAsText(f);
 }
 
 function loadAllData() {
@@ -174,63 +237,69 @@ function loadAllData() {
 
 function renderTabs() {
     db.transaction(["pages"], "readonly").objectStore("pages").getAllKeys().onsuccess = e => {
-        const dates = e.target.result;
-        const allDates = [...new Set([...dates, ...Object.keys(outlookSchedule)])];
+        const imgDates = e.target.result;
+        const allDates = [...new Set([...imgDates, ...Object.keys(outlookSchedule)])];
         const months = [...new Set(allDates.map(d => d.substring(0,6)))].sort().reverse();
         if(!currentMonth && months.length > 0) currentMonth = months[0];
         document.getElementById('tabs').innerHTML = months.map(m => `<span class="tab ${m===currentMonth?'active':''}" onclick="currentMonth='${m}';renderTabs();">${m.substring(0,4)}/${m.substring(4,6)}</span>`).join('');
-        renderList(dates);
+        renderList(imgDates);
     };
 }
 
 function renderList(imgDates) {
     const container = document.getElementById('main-content');
     container.innerHTML = "";
-    let weeks = {};
-    const targetDates = [...new Set([...imgDates, ...Object.keys(outlookSchedule)])].filter(d => d.startsWith(currentMonth)).sort();
+    const targetDates = [...new Set([...imgDates, ...Object.keys(outlookSchedule)])].filter(d => d.startsWith(currentMonth)).sort().reverse();
 
-    targetDates.forEach(d => {
-        const mon = getMonday(d);
-        if(!weeks[mon]) weeks[mon] = { left: null, right: null };
-        const dObj = new Date(d.substring(0,4), parseInt(d.substring(4,6))-1, parseInt(d.substring(6,8)));
-        if(dObj.getDay() >= 1 && dObj.getDay() <= 3) weeks[mon].left = d; else weeks[mon].right = d;
-    });
-
-    Object.keys(weeks).sort().reverse().forEach(mon => {
-        const wDiv = document.createElement('div');
-        wDiv.className = "week-container";
-        wDiv.innerHTML = `<div class="week-title">${mon.substring(4,6)}/${mon.substring(6,8)}の週</div>`;
-        [weeks[mon].left, weeks[mon].right].forEach((d, idx) => {
-            const dateVal = d || (idx===0 ? addDays(mon, 0) : addDays(mon, 3));
-            const card = document.createElement('div');
-            card.className = `page-card ${idx===0?'page-left':'page-right'}`;
-            let sch = `<div class="schedule-box">`;
-            [0,1,2,3,4,5,6].filter(off => (idx===0 ? off<3 : off>=3)).forEach(off => {
-                const targetD = addDays(mon, off);
-                if(outlookSchedule[targetD]) outlookSchedule[targetD].forEach(ev => {
-                    sch += `<div class="event-item"><span class="time-tag">${targetD.substring(6,8)}日 ${ev.start.substring(0,5)}</span>${ev.title}</div>`;
-                });
+    targetDates.forEach(date => {
+        const card = document.createElement('div');
+        card.className = "page-card";
+        
+        let schHtml = `<div class="schedule-box">`;
+        if(outlookSchedule[date]) {
+            outlookSchedule[date].forEach(ev => {
+                schHtml += `<div class="event-item"><span class="time-tag">${ev.start.substring(0,5)}</span>${ev.title}</div>`;
             });
-            db.transaction(["pages"],"readonly").objectStore("pages").get(dateVal).onsuccess = e => {
-                const img = e.target.result ? `<img src="${e.target.result.image}" class="diary-img">` : `<div style="padding:40px; text-align:center; color:#ccc;">(手書き画像なし)</div>`;
-                card.innerHTML = `<div style="padding:5px; background:#f8f9fa; font-size:0.7rem;">${dateVal}</div>${img}${sch}</div>`;
-            };
-            wDiv.appendChild(card);
-        });
-        container.appendChild(wDiv);
+        }
+        schHtml += `</div>`;
+
+        db.transaction(["pages"],"readonly").objectStore("pages").get(date).onsuccess = e => {
+            const hasImg = !!e.target.result;
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="date-label">${date.substring(0,4)}/${date.substring(4,6)}/${date.substring(6,8)}</span>
+                    ${hasImg ? `<button class="btn-del" onclick="deletePage('${date}')">画像削除</button>` : ''}
+                </div>
+                ${hasImg ? `<img src="${e.target.result.image}" class="diary-img">` : `<div style="padding:40px; text-align:center; color:#ccc; background:#f9f9f9;">(手書き画像なし)</div>`}
+                ${schHtml}
+            `;
+        };
+        container.appendChild(card);
     });
 }
 
-function getMonday(dStr) {
-    const d = new Date(dStr.substring(0,4), parseInt(dStr.substring(4,6))-1, parseInt(dStr.substring(6,8)));
-    const day = d.getDay() || 7;
-    d.setDate(d.getDate() - day + 1);
-    return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+// バックアップ系
+async function exportAllData() {
+    const tx = db.transaction(["pages", "schedule"], "readonly");
+    const pages = await new Promise(r => tx.objectStore("pages").getAll().onsuccess = e => r(e.target.result));
+    const schedule = await new Promise(r => tx.objectStore("schedule").getAll().onsuccess = e => r(e.target.result));
+    const blob = new Blob([JSON.stringify({ pages, schedule })], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `diary_backup.json`;
+    a.click();
 }
-function addDays(dStr, n) {
-    const d = new Date(dStr.substring(0,4), parseInt(dStr.substring(4,6))-1, parseInt(dStr.substring(6,8)));
-    d.setDate(d.getDate() + n);
-    return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+function importAllData() {
+    const f = document.getElementById('importFile').files[0];
+    const r = new FileReader();
+    r.onload = e => {
+        const d = JSON.parse(e.target.result);
+        const tx = db.transaction(["pages", "schedule"], "readwrite");
+        d.pages.forEach(p => tx.objectStore("pages").put(p));
+        d.schedule.forEach(s => tx.objectStore("schedule").put(s));
+        tx.oncomplete = () => { alert("同期しました"); location.reload(); };
+    };
+    r.readAsText(f);
 }
 </script>
 </body>
